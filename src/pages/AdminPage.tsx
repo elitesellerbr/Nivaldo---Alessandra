@@ -633,7 +633,7 @@ function GalleryAdmin() {
   )
 }
 
- = { display: 'block', fontSize: '.67rem', letterSpacing: '.13em', textTransform: 'uppercase', color: '#9E9089', marginBottom: '.35rem', fontFamily: 'DM Sans, sans-serif' }
+const lbl2: React.CSSProperties = { display: 'block', fontSize: '.67rem', letterSpacing: '.13em', textTransform: 'uppercase', color: '#9E9089', marginBottom: '.35rem', fontFamily: 'DM Sans, sans-serif' }
 const inp2: React.CSSProperties = { width: '100%', padding: '.7rem .875rem', backgroundColor: '#F7F3EE', border: '1px solid #D4CEC8', color: '#1A1714', outline: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '.875rem' }
 const ibtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', padding: '.35rem', color: '#9E9089', display: 'flex', alignItems: 'center' }
 
