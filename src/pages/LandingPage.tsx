@@ -60,7 +60,7 @@ const t = {
       title: 'Diteci di cosa\navete bisogno',
       sub: 'Compilate il form, vi contattiamo entro 24 ore per fissare il sopralluogo gratuito.',
       name: 'Nome e cognome *', phone: 'Telefono *', email: 'Email', address: 'Indirizzo dell\'immobile *',
-      service: 'Tipo di lavoro *', desc: 'Descrizione del lavoro *', budget: 'Budget indicativo',
+      service: 'Tipo di lavoro *', desc: 'Descrizione del lavoro *',
       services: ['Ristrutturazione bagno completa', 'Solo impianto idraulico', 'Pavimenti e rivestimenti', 'Impianto elettrico', 'Tinteggiatura', 'Altro'],
       send: 'Invia richiesta', sending: 'Invio in corso...', success: 'Richiesta inviata! Vi contatteremo presto.', error: 'Errore. Riprova.',
     },
@@ -104,7 +104,7 @@ const t = {
       title: 'Nos diga do que\nvocê precisa',
       sub: 'Preencha o formulário, entramos em contato em até 24 horas para marcar a visita gratuita.',
       name: 'Nome completo *', phone: 'Telefone *', email: 'E-mail', address: 'Endereço do imóvel *',
-      service: 'Tipo de trabalho *', desc: 'Descrição do trabalho *', budget: 'Orçamento indicativo',
+      service: 'Tipo de trabalho *', desc: 'Descrição do trabalho *',
       services: ['Reforma completa de banheiro', 'Só instalação hidráulica', 'Pisos e revestimentos', 'Instalação elétrica', 'Pintura', 'Outro'],
       send: 'Enviar pedido', sending: 'Enviando...', success: 'Pedido enviado! Entraremos em contato em breve.', error: 'Erro. Tente novamente.',
     },
@@ -131,7 +131,7 @@ export default function LandingPage() {
   const [lang, setLang] = useState<Lang>('it')
   const [menuOpen, setMenuOpen] = useState(false)
   const [settings, setSettings] = useState<Settings>({ phone: '328 064 2160', email: '', whatsapp: '3280642160', address: 'Via Piacenza, 2 - Limbiate (MB)' })
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', serviceType: '', description: '', budget: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', serviceType: '', description: '' })
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
   const tx = t[lang]
   const services = lang === 'it' ? SERVICES_IT : SERVICES_PT
@@ -153,7 +153,7 @@ export default function LandingPage() {
         body: JSON.stringify({ ...form, lang }),
       })
       setStatus(res.ok ? 'success' : 'error')
-      if (res.ok) { setForm({ name: '', phone: '', email: '', address: '', serviceType: '', description: '', budget: '' }); setTimeout(() => setStatus('idle'), 5000) }
+      if (res.ok) { setForm({ name: '', phone: '', email: '', address: '', serviceType: '', description: '' }); setTimeout(() => setStatus('idle'), 5000) }
       else setTimeout(() => setStatus('idle'), 3000)
     } catch { setStatus('error'); setTimeout(() => setStatus('idle'), 3000) }
   }
@@ -235,8 +235,8 @@ export default function LandingPage() {
               <button onClick={() => scrollTo('quote')} style={{ backgroundColor: '#1A1714', color: '#F7F3EE', padding: '.875rem 2rem', border: 'none', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif' }}>
                 {tx.hero.cta}
               </button>
-              <a href={`tel:${settings.phone.replace(/\s/g, '')}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'transparent', color: '#1A1714', padding: '.875rem 1.5rem', border: '1px solid #1A1714', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif', textDecoration: 'none' }}>
-                <Phone size={14} /> {tx.hero.cta2}
+              <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#25D366', color: '#fff', padding: '.875rem 1.5rem', border: 'none', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif', textDecoration: 'none' }}>
+                <MessageCircle size={14} /> {tx.hero.cta2}
               </a>
             </div>
 
@@ -305,34 +305,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PREÇO / PREVENTIVO ESEMPIO */}
-      <section style={{ backgroundColor: '#1A1714', padding: '6rem 1.5rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }} className="price-grid">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-              <div style={{ width: '28px', height: '1px', backgroundColor: '#C9A96E' }} />
-              <span style={{ fontSize: '.65rem', letterSpacing: '.25em', textTransform: 'uppercase', color: '#C9A96E' }}>{tx.price.label}</span>
-            </div>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300, fontStyle: 'italic', fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', lineHeight: 1.15, color: '#F7F3EE', marginBottom: '2rem' }}>{tx.price.title}</h2>
-            <button onClick={() => scrollTo('quote')} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#C9A96E', color: '#1A1714', padding: '.875rem 1.75rem', border: 'none', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 500, fontFamily: 'DM Sans, sans-serif' }}>
-              {tx.price.cta} <ArrowRight size={14} />
-            </button>
-          </div>
-          <div style={{ backgroundColor: 'rgba(247,243,238,.05)', border: '1px solid rgba(201,169,110,.25)', padding: '2.5rem' }}>
-            <p style={{ fontSize: '.72rem', letterSpacing: '.15em', textTransform: 'uppercase', color: '#C9A96E', marginBottom: '1.25rem' }}>{tx.price.includes}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
-              {tx.price.items.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                  <CheckCircle size={15} style={{ color: '#C9A96E', flexShrink: 0, marginTop: '2px' }} />
-                  <span style={{ fontSize: '.875rem', lineHeight: 1.5, color: 'rgba(247,243,238,.8)' }}>{item}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(201,169,110,.25)', fontSize: '.75rem', color: 'rgba(247,243,238,.45)', lineHeight: 1.6 }}>{tx.price.note}</div>
-          </div>
-        </div>
-        <style>{`.price-grid{grid-template-columns:1fr 1fr}@media(max-width:768px){.price-grid{grid-template-columns:1fr!important}}`}</style>
-      </section>
 
       {/* FORM PREVENTIVO */}
       <section id="quote" style={{ backgroundColor: '#F7F3EE', padding: '6rem 1.5rem' }}>
@@ -380,17 +352,10 @@ export default function LandingPage() {
                   onFocus={e => (e.target.style.borderColor = '#C9A96E')} onBlur={e => (e.target.style.borderColor = '#D4CEC8')} />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={lbl}>{tx.quote.email}</label>
-                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inp}
-                  onFocus={e => (e.target.style.borderColor = '#C9A96E')} onBlur={e => (e.target.style.borderColor = '#D4CEC8')} />
-              </div>
-              <div>
-                <label style={lbl}>{tx.quote.budget}</label>
-                <input value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} placeholder="es. €5.000 - €15.000" style={inp}
-                  onFocus={e => (e.target.style.borderColor = '#C9A96E')} onBlur={e => (e.target.style.borderColor = '#D4CEC8')} />
-              </div>
+            <div>
+              <label style={lbl}>{tx.quote.email}</label>
+              <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inp}
+                onFocus={e => (e.target.style.borderColor = '#C9A96E')} onBlur={e => (e.target.style.borderColor = '#D4CEC8')} />
             </div>
             <div>
               <label style={lbl}>{tx.quote.address}</label>

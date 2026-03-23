@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, FileText, MessageSquare, Settings, Plus, Trash2, Check, X, LogOut, ChevronRight, Mail, Phone, MapPin, Save, AlertCircle, Eye, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { LayoutDashboard, FileText, MessageSquare, Settings, Trash2, Check, X, LogOut, ChevronRight, Mail, Phone, MapPin, Save, AlertCircle, Eye, EyeOff, Clock, CheckCircle, XCircle, Image, Upload, Link, Video, Plus } from 'lucide-react'
 
 const ADMIN_PASS = 'moura2025'
 
@@ -50,6 +50,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 const sideLinks = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/quotes', label: 'Orçamentos', icon: FileText },
+  { to: '/admin/gallery', label: 'Galeria', icon: Image },
   { to: '/admin/messages', label: 'Mensagens', icon: MessageSquare },
   { to: '/admin/settings', label: 'Configurações', icon: Settings },
 ]
@@ -387,7 +388,252 @@ function SettingsAdmin() {
   )
 }
 
-const lbl2: React.CSSProperties = { display: 'block', fontSize: '.67rem', letterSpacing: '.13em', textTransform: 'uppercase', color: '#9E9089', marginBottom: '.35rem', fontFamily: 'DM Sans, sans-serif' }
+// ── Galeria ──
+interface MediaItem { id: string; type: string; title: string; url: string; thumbnail?: string; published: boolean; order: number; createdAt: string }
+
+function GalleryAdmin() {
+  const [items, setItems] = useState<MediaItem[]>([])
+  const [tab, setTab] = useState<'photo' | 'video'>('photo')
+  const [uploading, setUploading] = useState(false)
+  const [delConfirm, setDelConfirm] = useState<string | null>(null)
+  const [videoUrl, setVideoUrl] = useState('')
+  const [videoTitle, setVideoTitle] = useState('')
+  const [addingVideo, setAddingVideo] = useState(false)
+
+  const load = () => fetch('/api/admin/media').then(r => r.json()).then(setItems).catch(() => {})
+  useEffect(() => { load() }, [])
+
+  const photos = items.filter(i => i.type === 'photo')
+  const videos = items.filter(i => i.type === 'video')
+
+  // Upload foto — converte para base64 e envia
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploading(true)
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { alert(`${file.name} é maior que 5MB. Reduza o tamanho da imagem.`); continue }
+      const base64 = await new Promise<string>((res, rej) => {
+        const r = new FileReader()
+        r.onload = () => res(r.result as string)
+        r.onerror = rej
+        r.readAsDataURL(file)
+      })
+      await fetch('/api/admin/media', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'photo', title: file.name.replace(/\.[^.]+$/, ''), url: base64 }),
+      })
+    }
+    await load()
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  // Extrair ID do YouTube/Vimeo
+  const getYoutubeId = (url: string) => {
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
+    return m ? m[1] : null
+  }
+  const getVimeoId = (url: string) => {
+    const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+    return m ? m[1] : null
+  }
+
+  const addVideo = async () => {
+    if (!videoUrl.trim()) return
+    const ytId = getYoutubeId(videoUrl)
+    const vmId = getVimeoId(videoUrl)
+    let embedUrl = '', thumbnail = ''
+    if (ytId) {
+      embedUrl = `https://www.youtube.com/embed/${ytId}`
+      thumbnail = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+    } else if (vmId) {
+      embedUrl = `https://player.vimeo.com/video/${vmId}`
+    } else {
+      alert('Link inválido. Use YouTube ou Vimeo.'); return
+    }
+    await fetch('/api/admin/media', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'video', title: videoTitle || 'Vídeo', url: embedUrl, thumbnail }),
+    })
+    setVideoUrl(''); setVideoTitle(''); setAddingVideo(false)
+    await load()
+  }
+
+  const togglePublish = async (item: MediaItem) => {
+    await fetch(`/api/admin/media/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: item.title, published: !item.published, order: item.order }) })
+    await load()
+  }
+
+  const del = async (id: string) => {
+    await fetch(`/api/admin/media/${id}`, { method: 'DELETE' })
+    await load(); setDelConfirm(null)
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '2rem', fontWeight: 400, color: '#1A1714' }}>Galeria</h1>
+          <p style={{ color: '#9E9089', fontSize: '.82rem' }}>{photos.length} fotos · {videos.length} vídeos</p>
+        </div>
+        <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap' }}>
+          {/* Upload fotos */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '7px', backgroundColor: '#1A1714', color: '#F7F3EE', padding: '.65rem 1.25rem', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+            <Upload size={14} />
+            {uploading ? 'Enviando...' : 'Enviar fotos'}
+            <input type="file" accept="image/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} disabled={uploading} />
+          </label>
+          {/* Adicionar vídeo */}
+          <button onClick={() => setAddingVideo(true)} style={{ display: 'flex', alignItems: 'center', gap: '7px', backgroundColor: 'transparent', color: '#1A1714', border: '1px solid #D4CEC8', padding: '.65rem 1.25rem', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+            <Link size={14} /> Adicionar vídeo
+          </button>
+        </div>
+      </div>
+
+      {/* Modal adicionar vídeo */}
+      {addingVideo && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(26,23,20,.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: '480px', padding: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 400, color: '#1A1714' }}>Adicionar vídeo</h2>
+              <button onClick={() => setAddingVideo(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9E9089' }}><X size={18} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={lbl2}>Título do vídeo</label>
+                <input value={videoTitle} onChange={e => setVideoTitle(e.target.value)} placeholder="Ex: Ristrutturazione Via Modena" style={inp2} />
+              </div>
+              <div>
+                <label style={lbl2}>Link YouTube ou Vimeo</label>
+                <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." style={inp2} />
+                <p style={{ fontSize: '.72rem', color: '#9E9089', marginTop: '.35rem' }}>Aceita links do YouTube e Vimeo</p>
+              </div>
+              <div style={{ display: 'flex', gap: '.75rem', justifyContent: 'flex-end' }}>
+                <button onClick={() => setAddingVideo(false)} style={{ padding: '.65rem 1.25rem', border: '1px solid #D4CEC8', background: 'none', cursor: 'pointer', fontSize: '.78rem' }}>Cancelar</button>
+                <button onClick={addVideo} style={{ padding: '.65rem 1.5rem', backgroundColor: '#1A1714', color: '#F7F3EE', border: 'none', cursor: 'pointer', fontSize: '.78rem', letterSpacing: '.08em' }}>Adicionar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '0', marginBottom: '1.25rem', borderBottom: '1px solid #D4CEC8' }}>
+        {(['photo', 'video'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ padding: '.65rem 1.5rem', border: 'none', borderBottom: tab === t ? '2px solid #C9A96E' : '2px solid transparent', background: 'none', cursor: 'pointer', fontSize: '.8rem', letterSpacing: '.05em', color: tab === t ? '#1A1714' : '#9E9089', fontWeight: tab === t ? 500 : 400, marginBottom: '-1px' }}>
+            {t === 'photo' ? <><Image size={13} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Fotos ({photos.length})</> : <><Video size={13} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Vídeos ({videos.length})</>}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid fotos */}
+      {tab === 'photo' && (
+        <>
+          {photos.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '4rem', backgroundColor: '#fff', color: '#9E9089' }}>
+              <Upload size={32} style={{ marginBottom: '1rem', opacity: .4 }} />
+              <p style={{ fontSize: '.875rem' }}>Nenhuma foto ainda. Clique em "Enviar fotos" para começar.</p>
+              <p style={{ fontSize: '.75rem', marginTop: '.5rem', opacity: .6 }}>Máximo 5MB por imagem · JPG, PNG, WEBP</p>
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '2px' }}>
+            {photos.map(photo => (
+              <div key={photo.id} style={{ position: 'relative', aspectRatio: '1', backgroundColor: '#F0EDE8', overflow: 'hidden' }}>
+                <img src={photo.url} alt={photo.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: photo.published ? 1 : 0.4 }} />
+                {!photo.published && (
+                  <div style={{ position: 'absolute', top: '6px', left: '6px', backgroundColor: '#9E9089', color: '#fff', fontSize: '.6rem', padding: '2px 6px', letterSpacing: '.06em' }}>OCULTA</div>
+                )}
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(26,23,20,0)', transition: 'background-color .2s', display: 'flex', alignItems: 'flex-end' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(26,23,20,.5)')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(26,23,20,0)')}>
+                  <div style={{ width: '100%', padding: '8px', display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                    <button onClick={() => togglePublish(photo)} title={photo.published ? 'Ocultar' : 'Publicar'} style={{ ...ibtn, backgroundColor: 'rgba(247,243,238,.9)', color: '#1A1714' }}>
+                      {photo.published ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                    {delConfirm === photo.id ? (
+                      <>
+                        <button onClick={() => del(photo.id)} style={{ ...ibtn, backgroundColor: '#8B3A2A', color: '#fff' }}><Check size={13} /></button>
+                        <button onClick={() => setDelConfirm(null)} style={{ ...ibtn, backgroundColor: 'rgba(247,243,238,.9)', color: '#1A1714' }}><X size={13} /></button>
+                      </>
+                    ) : (
+                      <button onClick={() => setDelConfirm(photo.id)} style={{ ...ibtn, backgroundColor: 'rgba(247,243,238,.9)', color: '#8B3A2A' }}><Trash2 size={13} /></button>
+                    )}
+                  </div>
+                </div>
+                {photo.title && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '4px 8px', backgroundColor: 'rgba(26,23,20,.6)', fontSize: '.68rem', color: '#F7F3EE', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{photo.title}</div>}
+              </div>
+            ))}
+            {/* Upload area */}
+            <label style={{ aspectRatio: '1', backgroundColor: '#F7F3EE', border: '2px dashed #D4CEC8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: '8px' }}>
+              <Plus size={24} style={{ color: '#D4CEC8' }} />
+              <span style={{ fontSize: '.7rem', color: '#9E9089', letterSpacing: '.05em' }}>Adicionar</span>
+              <input type="file" accept="image/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} disabled={uploading} />
+            </label>
+          </div>
+        </>
+      )}
+
+      {/* Grid vídeos */}
+      {tab === 'video' && (
+        <>
+          {videos.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '4rem', backgroundColor: '#fff', color: '#9E9089' }}>
+              <Video size={32} style={{ marginBottom: '1rem', opacity: .4 }} />
+              <p style={{ fontSize: '.875rem' }}>Nenhum vídeo ainda. Clique em "Adicionar vídeo" para começar.</p>
+              <p style={{ fontSize: '.75rem', marginTop: '.5rem', opacity: .6 }}>Aceita links do YouTube e Vimeo</p>
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            {videos.map(video => (
+              <div key={video.id} style={{ backgroundColor: '#fff', overflow: 'hidden', opacity: video.published ? 1 : 0.6 }}>
+                <div style={{ position: 'relative', paddingBottom: '56.25%', backgroundColor: '#1A1714' }}>
+                  {video.thumbnail ? (
+                    <img src={video.thumbnail} alt={video.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Video size={32} style={{ color: 'rgba(247,243,238,.3)' }} />
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '44px', height: '44px', backgroundColor: 'rgba(201,169,110,.9)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#1A1714"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: '.875rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '.82rem', color: '#1A1714', fontWeight: 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.title || 'Sem título'}</span>
+                  <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                    <button onClick={() => togglePublish(video)} style={{ ...ibtn, color: video.published ? '#6B7B5E' : '#9E9089' }}>
+                      {video.published ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                    {delConfirm === video.id ? (
+                      <>
+                        <button onClick={() => del(video.id)} style={{ ...ibtn, color: '#8B3A2A' }}><Check size={13} /></button>
+                        <button onClick={() => setDelConfirm(null)} style={ibtn}><X size={13} /></button>
+                      </>
+                    ) : (
+                      <button onClick={() => setDelConfirm(video.id)} style={{ ...ibtn, color: '#8B3A2A' }}><Trash2 size={13} /></button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#fff', borderLeft: '3px solid #C9A96E' }}>
+        <p style={{ fontSize: '.78rem', color: '#9E9089', lineHeight: 1.6 }}>
+          <strong style={{ color: '#1A1714' }}>Fotos:</strong> máx. 5MB por imagem (JPG, PNG, WEBP). As fotos são salvas diretamente no banco de dados.<br />
+          <strong style={{ color: '#1A1714' }}>Vídeos:</strong> cole o link do YouTube ou Vimeo. O vídeo fica hospedado nessas plataformas.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+ = { display: 'block', fontSize: '.67rem', letterSpacing: '.13em', textTransform: 'uppercase', color: '#9E9089', marginBottom: '.35rem', fontFamily: 'DM Sans, sans-serif' }
 const inp2: React.CSSProperties = { width: '100%', padding: '.7rem .875rem', backgroundColor: '#F7F3EE', border: '1px solid #D4CEC8', color: '#1A1714', outline: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '.875rem' }
 const ibtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', padding: '.35rem', color: '#9E9089', display: 'flex', alignItems: 'center' }
 
@@ -400,6 +646,7 @@ export default function AdminPage() {
       <Routes>
         <Route index element={<Dashboard />} />
         <Route path="quotes" element={<QuotesAdmin />} />
+        <Route path="gallery" element={<GalleryAdmin />} />
         <Route path="messages" element={<MessagesAdmin />} />
         <Route path="settings" element={<SettingsAdmin />} />
       </Routes>

@@ -53,3 +53,16 @@ model ContactMessage {
 
   @@map("contact_messages")
 }
+
+model Media {
+  id        String   @id @default(cuid())
+  type      String   // "photo" | "video"
+  title     String   @default("")
+  url       String   // base64 para foto, link para video
+  thumbnail String?  // thumbnail do video
+  published Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("media")
+}

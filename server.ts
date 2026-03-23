@@ -104,6 +104,52 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ── Media ──
+  app.get("/api/media", async (_, res) => {
+    try {
+      const db = getPrisma();
+      if (!db) return res.json([]);
+      res.json(await db.media.findMany({ where: { published: true }, orderBy: [{ order: "asc" }, { createdAt: "desc" }] }));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/admin/media", async (_, res) => {
+    try {
+      const db = getPrisma();
+      if (!db) return res.json([]);
+      res.json(await db.media.findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }] }));
+    } catch { res.json([]); }
+  });
+
+  app.post("/api/admin/media", async (req, res) => {
+    try {
+      const db = getPrisma();
+      if (!db) return res.status(503).json({ error: "DB não configurado" });
+      const { type, title, url, thumbnail, published, order } = req.body;
+      if (!url) return res.status(400).json({ error: "URL obrigatória" });
+      const m = await db.media.create({ data: { type, title: title || "", url, thumbnail, published: published ?? true, order: order ?? 0 } });
+      res.json(m);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put("/api/admin/media/:id", async (req, res) => {
+    try {
+      const db = getPrisma();
+      if (!db) return res.status(503).json({ error: "DB não configurado" });
+      const { title, published, order } = req.body;
+      res.json(await db.media.update({ where: { id: req.params.id }, data: { title, published, order } }));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.delete("/api/admin/media/:id", async (req, res) => {
+    try {
+      const db = getPrisma();
+      if (!db) return res.status(503).json({ error: "DB não configurado" });
+      await db.media.delete({ where: { id: req.params.id } });
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // ── Contato ──
   app.post("/api/contact", async (req, res) => {
     try {
