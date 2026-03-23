@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  author    String
+  lang      String   @default("it")
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("stories")
+}
+
+model Settings {
+  id          String  @id @default("global")
+  companyName String  @default("Moura")
+  publicLang  String  @default("it")
+  phone       String  @default("")
+  email       String  @default("")
+  address     String  @default("")
+  instagram   String  @default("")
+  facebook    String  @default("")
+
+  @@map("settings")
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  lang      String   @default("it")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}
