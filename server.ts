@@ -6,7 +6,19 @@ import { PrismaClient } from "@prisma/client";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const prisma = new PrismaClient();
+
+let prisma: PrismaClient | null = null;
+
+function getPrisma() {
+  if (!prisma) {
+    if (!process.env.DATABASE_URL) {
+      console.warn("⚠️ DATABASE_URL is not set. Database features will be disabled.");
+      return null;
+    }
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
@@ -27,32 +39,41 @@ async function startServer() {
   // Stories CRUD
   app.get("/api/stories", async (req, res) => {
     try {
-      const stories = await prisma.story.findMany({
+      const db = getPrisma();
+      if (!db) return res.json([]);
+      const stories = await db.story.findMany({
         orderBy: { createdAt: 'desc' }
       });
       res.json(stories);
     } catch (error) {
+      console.error("Fetch stories error:", error);
       res.status(500).json({ error: "Failed to fetch stories" });
     }
   });
 
   app.post("/api/stories", async (req, res) => {
     try {
+      const db = getPrisma();
+      if (!db) return res.status(503).json({ error: "Database not configured" });
       const { title, content, author, createdAt } = req.body;
-      const story = await prisma.story.create({
+      const story = await db.story.create({
         data: { title, content, author, createdAt: BigInt(createdAt) }
       });
       res.json(story);
     } catch (error) {
+      console.error("Create story error:", error);
       res.status(500).json({ error: "Failed to create story" });
     }
   });
 
   app.delete("/api/stories/:id", async (req, res) => {
     try {
-      await prisma.story.delete({ where: { id: req.params.id } });
+      const db = getPrisma();
+      if (!db) return res.status(503).json({ error: "Database not configured" });
+      await db.story.delete({ where: { id: req.params.id } });
       res.json({ success: true });
     } catch (error) {
+      console.error("Delete story error:", error);
       res.status(500).json({ error: "Failed to delete story" });
     }
   });
@@ -60,28 +81,34 @@ async function startServer() {
   // Settings CRUD
   app.get("/api/settings", async (req, res) => {
     try {
-      let settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const db = getPrisma();
+      if (!db) return res.json({ id: "global", companyName: "Preview Mode", publicLanguage: "it" });
+      let settings = await db.settings.findUnique({ where: { id: "global" } });
       if (!settings) {
-        settings = await prisma.settings.create({
+        settings = await db.settings.create({
           data: { id: "global", companyName: "My Company" }
         });
       }
       res.json(settings);
     } catch (error) {
+      console.error("Fetch settings error:", error);
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
 
   app.post("/api/settings", async (req, res) => {
     try {
+      const db = getPrisma();
+      if (!db) return res.status(503).json({ error: "Database not configured" });
       const { publicLanguage, companyName } = req.body;
-      const settings = await prisma.settings.upsert({
+      const settings = await db.settings.upsert({
         where: { id: "global" },
         update: { publicLanguage, companyName },
         create: { id: "global", publicLanguage, companyName }
       });
       res.json(settings);
     } catch (error) {
+      console.error("Update settings error:", error);
       res.status(500).json({ error: "Failed to update settings" });
     }
   });
