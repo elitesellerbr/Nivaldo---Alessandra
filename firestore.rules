@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: stories
+    // Document ID: auto-generated
+    // Fields:
+    //   - clientName: string (required, 1-100 chars)
+    //   - beforeUrl: string (required, valid URL)
+    //   - afterUrl: string (required, valid URL)
+    //   - type: string (required, ['video', 'image'])
+    //   - createdAt: number (required)
+    //
+    // Collection: settings
+    // Document ID: global
+    // Fields:
+    //   - publicLanguage: string (required, ['it', 'pt'])
+    //   - companyName: string (required, 1-100 chars)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "elitesellerbr@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidStory(data) {
+      return hasOnlyAllowedFields(['clientName', 'beforeUrl', 'afterUrl', 'type', 'createdAt']) &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 100 &&
+             isValidUrl(data.beforeUrl) && isValidUrl(data.afterUrl) &&
+             data.type in ['video', 'image'] &&
+             data.createdAt is number;
+    }
+
+    function isValidSettings(data) {
+      return hasOnlyAllowedFields(['publicLanguage', 'companyName']) &&
+             data.publicLanguage in ['it', 'pt'] &&
+             data.companyName is string && data.companyName.size() > 0 && data.companyName.size() <= 100;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /stories/{storyId} {
+      allow read: if true; // Publicly readable for the portfolio
+      allow create: if isAdmin() && isValidStory(request.resource.data);
+      allow update: if isAdmin() && isValidStory(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /settings/global {
+      allow read: if true; // Publicly readable for site config
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+  }
+}

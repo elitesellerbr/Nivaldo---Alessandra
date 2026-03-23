@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Story": {
+      "title": "Story",
+      "description": "A before and after showcase of a construction project.",
+      "type": "object",
+      "properties": {
+        "clientName": {
+          "type": "string",
+          "description": "The name of the client for the project."
+        },
+        "beforeUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the media showing the project before."
+        },
+        "afterUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the media showing the project after."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["video", "image"],
+          "description": "The type of media (video or image)."
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp of when the story was created."
+        }
+      },
+      "required": ["clientName", "beforeUrl", "afterUrl", "type", "createdAt"]
+    },
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Global configuration for the application.",
+      "type": "object",
+      "properties": {
+        "publicLanguage": {
+          "type": "string",
+          "enum": ["it", "pt"],
+          "description": "The language displayed on the public site."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The name of the company displayed on the site."
+        }
+      },
+      "required": ["publicLanguage", "companyName"]
+    }
+  },
+  "firestore": {
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "Collection of before and after stories."
+    },
+    "/settings/global": {
+      "schema": "AppSettings",
+      "description": "Global application settings."
+    }
+  }
+}
