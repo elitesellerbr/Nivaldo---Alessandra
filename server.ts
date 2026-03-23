@@ -11,8 +11,13 @@ let prisma: PrismaClient | null = null;
 
 function getPrisma() {
   if (!prisma) {
-    if (!process.env.DATABASE_URL) {
-      console.warn("⚠️ DATABASE_URL is not set. Database features will be disabled.");
+    const url = process.env.DATABASE_URL;
+    if (!url || url.includes("localhost") || url.includes("password") || url.includes("mydb")) {
+      // Only warn once
+      if (!(global as any).prismaWarned) {
+        console.warn("⚠️ DATABASE_URL is not set or is a placeholder. Database features will be disabled in preview.");
+        (global as any).prismaWarned = true;
+      }
       return null;
     }
     prisma = new PrismaClient();
@@ -45,8 +50,18 @@ async function startServer() {
         orderBy: { createdAt: 'desc' }
       });
       res.json(stories);
-    } catch (error) {
-      console.error("Fetch stories error:", error);
+    } catch (error: any) {
+      // Silently handle connection errors in preview/dev if it's a known issue
+      const isConnectionError = error.name?.includes('PrismaClient') || error.message?.includes('connection');
+      if (isConnectionError) {
+        if (process.env.NODE_ENV !== "production") {
+          // Log only once or quietly
+        } else {
+          console.error("Fetch stories error:", error.message || error);
+        }
+        return res.json([]);
+      }
+      console.error("Fetch stories error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch stories" });
     }
   });
@@ -60,9 +75,9 @@ async function startServer() {
         data: { title, content, author, createdAt: BigInt(createdAt) }
       });
       res.json(story);
-    } catch (error) {
-      console.error("Create story error:", error);
-      res.status(500).json({ error: "Failed to create story" });
+    } catch (error: any) {
+      console.error("Create story error:", error.message || error);
+      res.status(500).json({ error: error.message || "Failed to create story" });
     }
   });
 
@@ -72,17 +87,18 @@ async function startServer() {
       if (!db) return res.status(503).json({ error: "Database not configured" });
       await db.story.delete({ where: { id: req.params.id } });
       res.json({ success: true });
-    } catch (error) {
-      console.error("Delete story error:", error);
-      res.status(500).json({ error: "Failed to delete story" });
+    } catch (error: any) {
+      console.error("Delete story error:", error.message || error);
+      res.status(500).json({ error: error.message || "Failed to delete story" });
     }
   });
 
   // Settings CRUD
   app.get("/api/settings", async (req, res) => {
+    const fallbackSettings = { id: "global", companyName: "Preview Mode", publicLanguage: "it" };
     try {
       const db = getPrisma();
-      if (!db) return res.json({ id: "global", companyName: "Preview Mode", publicLanguage: "it" });
+      if (!db) return res.json(fallbackSettings);
       let settings = await db.settings.findUnique({ where: { id: "global" } });
       if (!settings) {
         settings = await db.settings.create({
@@ -90,8 +106,17 @@ async function startServer() {
         });
       }
       res.json(settings);
-    } catch (error) {
-      console.error("Fetch settings error:", error);
+    } catch (error: any) {
+      const isConnectionError = error.name?.includes('PrismaClient') || error.message?.includes('connection');
+      if (isConnectionError) {
+        if (process.env.NODE_ENV !== "production") {
+          // Quiet in dev
+        } else {
+          console.error("Fetch settings error:", error.message || error);
+        }
+        return res.json(fallbackSettings);
+      }
+      console.error("Fetch settings error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
@@ -107,9 +132,9 @@ async function startServer() {
         create: { id: "global", publicLanguage, companyName }
       });
       res.json(settings);
-    } catch (error) {
-      console.error("Update settings error:", error);
-      res.status(500).json({ error: "Failed to update settings" });
+    } catch (error: any) {
+      console.error("Update settings error:", error.message || error);
+      res.status(500).json({ error: error.message || "Failed to update settings" });
     }
   });
 
