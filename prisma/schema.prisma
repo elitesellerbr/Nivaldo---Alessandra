@@ -7,30 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Story {
-  id        String   @id @default(cuid())
-  title     String
-  content   String
-  author    String
-  lang      String   @default("it")
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("stories")
-}
-
 model Settings {
   id          String  @id @default("global")
   companyName String  @default("Moura")
+  ownerName   String  @default("Nivaldo Moura Da Silva")
   publicLang  String  @default("it")
-  phone       String  @default("")
+  phone       String  @default("328 064 2160")
   email       String  @default("")
-  address     String  @default("")
+  address     String  @default("Via Piacenza, 2 - Limbiate (MB)")
+  vatNumber   String  @default("IT05142890960")
   instagram   String  @default("")
   facebook    String  @default("")
+  whatsapp    String  @default("3280642160")
 
   @@map("settings")
+}
+
+model QuoteRequest {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String
+  address     String
+  serviceType String
+  description String
+  budget      String?
+  status      String   @default("nuovo")
+  notes       String?
+  lang        String   @default("it")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("quote_requests")
 }
 
 model ContactMessage {

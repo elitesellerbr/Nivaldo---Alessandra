@@ -1,27 +1,35 @@
 -- CreateTable
-CREATE TABLE "stories" (
-    "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "author" TEXT NOT NULL,
-    "lang" TEXT NOT NULL DEFAULT 'it',
-    "published" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "stories_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "settings" (
     "id" TEXT NOT NULL,
     "companyName" TEXT NOT NULL DEFAULT 'Moura',
+    "ownerName" TEXT NOT NULL DEFAULT 'Nivaldo Moura Da Silva',
     "publicLang" TEXT NOT NULL DEFAULT 'it',
-    "phone" TEXT NOT NULL DEFAULT '',
+    "phone" TEXT NOT NULL DEFAULT '328 064 2160',
     "email" TEXT NOT NULL DEFAULT '',
-    "address" TEXT NOT NULL DEFAULT '',
+    "address" TEXT NOT NULL DEFAULT 'Via Piacenza, 2 - Limbiate (MB)',
+    "vatNumber" TEXT NOT NULL DEFAULT 'IT05142890960',
     "instagram" TEXT NOT NULL DEFAULT '',
     "facebook" TEXT NOT NULL DEFAULT '',
+    "whatsapp" TEXT NOT NULL DEFAULT '3280642160',
     CONSTRAINT "settings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "quote_requests" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "serviceType" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "budget" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'nuovo',
+    "notes" TEXT,
+    "lang" TEXT NOT NULL DEFAULT 'it',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "quote_requests_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
